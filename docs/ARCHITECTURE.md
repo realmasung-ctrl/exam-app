@@ -1,0 +1,57 @@
+# สถาปัตยกรรมและกติกาของระบบ (Phase 1–2)
+
+## หลักการ
+- เบราว์เซอร์ **ไม่คุยกับฐานข้อมูลโดยตรง** ทุกคำขอผ่าน API (Next.js route handlers) ซึ่งตรวจสิทธิ์ก่อนเรียก DB ด้วย service_role key (อยู่ฝั่งเซิร์ฟเวอร์เท่านั้น)
+- ทุกตารางเปิด RLS และ **ไม่มี policy** + เพิกถอนสิทธิ์ของ anon/authenticated → ต่อให้ anon key รั่วก็อ่านข้อมูลไม่ได้
+- กติกาที่ต้อง atomic (เริ่มสอบ บันทึกคำตอบ ส่งข้อสอบ ตรวจคะแนน ปิดรอบ) อยู่ใน SQL function ทั้งหมด (`0002_functions.sql`) เพื่อให้ pg_cron และ API ใช้ตรรกะเดียวกัน
+
+## ข้อกำหนดที่ปรับ/ตีความจาก Requirement (แจ้งให้ทราบ)
+1. **เวลาปิดรับผู้เข้าสอบ (`closes_at`)** = เวลาที่ปิดให้ "เริ่มสอบ" เท่านั้น ไม่ได้ตัดผู้ที่กำลังสอบอยู่ เวลาสิ้นสุดของแต่ละคน = `started_at + duration_minutes` (ตรงกับข้อ 3.4 ที่เขียนว่า "ปิดรับผู้เข้าสอบ") *— ข้อความก่อนหน้าของผมเขียนว่า deadline = min(..., closes_at) ซึ่งไม่ถูกต้อง ขอแก้ตรงนี้*
+2. **Snapshot ข้อสอบต่อรอบ**: `open_session` คัดลอกคำถามเข้า `session_questions/session_choices` แก้ชุดต้นฉบับภายหลังไม่กระทบรอบที่เปิดแล้ว
+3. **"ยังไม่เริ่มสอบ"**: ไม่มีรายชื่อผู้เรียนล่วงหน้า จึงคำนวณจาก `expected_participants` (ไม่บังคับ) − ผู้ที่เข้าระบบแล้ว
+4. **สถานะรอบสอบ**: `draft` → `open` (รับผู้เข้าสอบ) → `running` (มีผู้เริ่มสอบแล้ว ระบบเปลี่ยนให้อัตโนมัติ) → `ended` | `disabled`; "ปิดรับผู้เข้าสอบ" เป็นแฟล็ก `entry_closed_at` ไม่ใช่สถานะ
+5. **เข้าสอบซ้ำ**: ชื่อ+นามสกุล(+รหัส) เดียวกันเริ่มซ้ำไม่ได้ (`ALREADY_STARTED`) Admin กด `allow_retake` เพื่อ void ครั้งเดิม (เก็บไว้ตรวจสอบ ไม่แสดงในรายงาน)
+
+## โทเคนผู้เรียน
+API สร้างโทเคนสุ่ม 256 บิต → ส่งให้เบราว์เซอร์เก็บ (cookie HttpOnly + สำรอง localStorage) → DB เก็บเฉพาะ sha256 ทุกฟังก์ชันของผู้เรียนรับ `token_hash` แล้วหาแถวของตัวเอง จึงไม่มีทางอ้างถึงผู้เรียนคนอื่น แม้เปลี่ยน URL/เรียก API ตรง
+
+## ผู้ดูแลระบบ
+- ปิดการสมัครเองที่ Supabase (Authentication → Sign In / Providers → ปิด "Allow new users to sign up")
+- Admin คนแรก: `npm run create-admin` (หรือสร้างใน Dashboard + SQL ตาม README) ; คนถัดไป: Admin ที่มีอยู่แล้วสร้างบัญชีให้ที่เมนู “ตั้งค่าระบบ” พร้อมรหัสผ่านชั่วคราว (แทนการส่งอีเมลเชิญ เพราะอีเมลของ Supabase แพ็กเกจฟรีจำกัดจำนวนมาก และไม่ต้องตั้งหน้า callback) แล้วให้เจ้าตัวเปลี่ยนรหัสเอง
+- เป็น Admin ก็ต่อเมื่อมีแถวใน `admin_profiles` (มีบัญชี auth อย่างเดียวไม่พอ)
+
+## การส่งอัตโนมัติเมื่อหมดเวลา (3 ชั้น)
+1. `save_answer` ปฏิเสธคำตอบหลัง `deadline_at` (`EXPIRED`) แล้ว API เรียก `submit_attempt`
+2. pg_cron เรียก `finalize_expired()` ทุก 1 นาที
+3. API เรียก `finalize_expired()` แบบ lazy ตอนโหลดหน้าผลของ Admin/ผู้เรียน
+ผล: คะแนนมาจากคำตอบล่าสุดที่บันทึกไว้ `submitted_at` ไม่เกิน `deadline_at` เสมอ
+
+## รหัสข้อผิดพลาด (ข้อความใน exception) → ข้อความไทยที่ API จะแสดง
+| รหัส | ความหมาย |
+|---|---|
+| NAME_REQUIRED | กรุณากรอกชื่อและนามสกุล |
+| STUDENT_CODE_REQUIRED | รอบสอบนี้ต้องกรอกรหัสประจำตัว |
+| SESSION_NOT_FOUND | ไม่พบรอบสอบ/ลิงก์ไม่ถูกต้อง |
+| SESSION_CLOSED / ENTRY_CLOSED | รอบสอบปิดรับผู้เข้าสอบแล้ว |
+| SESSION_NOT_YET_OPEN | ยังไม่ถึงเวลาเปิดรับ |
+| ALREADY_STARTED | ชื่อนี้เข้าสอบไปแล้ว (ติดต่อผู้ดูแล) |
+| INVALID_TOKEN | ไม่พบการเข้าสอบนี้ในเบราว์เซอร์นี้ |
+| EXPIRED | หมดเวลาแล้ว ระบบกำลังส่งคำตอบ |
+| ALREADY_SUBMITTED | ส่งข้อสอบไปแล้ว |
+| INVALID_SET | ชุดข้อสอบยังไม่ครบถ้วน (ดู validate_question_set) |
+
+## แผนที่ API (จะสร้างใน Phase 3–8)
+```
+Admin (ต้องล็อกอิน + อยู่ใน admin_profiles)
+  /api/admin/sets, /sets/[id], /sets/[id]/questions, /sets/[id]/reorder, /sets/[id]/validate
+  /api/admin/sessions, /sessions/[id]/open | close-entry | end | export
+  /api/admin/sessions/[id]/participants, /participants/[pid] (รายละเอียดคำตอบ), /allow-retake
+  /api/admin/invite
+Student (ใช้โทเคน)
+  POST /api/exam/[code]/start        GET  /api/exam/attempt     (สถานะ+เวลาคงเหลือ+คำตอบล่าสุด)
+  PUT  /api/exam/attempt/answer      POST /api/exam/attempt/submit
+  GET  /api/exam/attempt/result      (เฉลยตาม reveal_mode เท่านั้น)
+```
+
+## ข้อจำกัดที่ยังไม่ได้ตรวจในสภาพแวดล้อมของผม
+SQL ยังไม่เคยถูกรันบน PostgreSQL จริง (เครื่องผมไม่มี Postgres และไม่มีเครือข่าย) ให้รัน `supabase/tests/smoke.sql` เพื่อยืนยัน — ดู README

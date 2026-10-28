@@ -1,0 +1,21 @@
+import "server-only";
+import { redirect } from "next/navigation";
+import { sessionClient } from "@/lib/supabase/server";
+import { serviceClient } from "@/lib/supabase/admin";
+
+/** Call at the top of every admin page and every admin server action.
+ *  A Supabase login alone is NOT enough: the user must have an admin_profiles row. */
+export async function requireAdmin() {
+  const supabase = await sessionClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/admin/login");
+
+  const { data: profile } = await serviceClient()
+    .from("admin_profiles")
+    .select("id, display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile) redirect("/admin/login?error=forbidden");
+
+  return { user, profile: profile as { id: string; display_name: string } };
+}
