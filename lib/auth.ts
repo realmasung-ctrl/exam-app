@@ -19,3 +19,13 @@ export async function requireAdmin() {
 
   return { user, profile: profile as { id: string; display_name: string } };
 }
+
+/** For route handlers (CSV/Excel export): returns null instead of redirecting, so the caller can answer 401. */
+export async function getAdminOrNull() {
+  const supabase = await sessionClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await serviceClient()
+    .from("admin_profiles").select("id, display_name").eq("id", user.id).maybeSingle();
+  return profile ? (profile as { id: string; display_name: string }) : null;
+}

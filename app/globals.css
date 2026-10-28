@@ -179,3 +179,25 @@ fieldset:disabled input:not([type="checkbox"]), fieldset:disabled select { backg
 .rv-opts li.is-wrong b { background: var(--danger); color: #fff; }
 .rv-opts li.is-wrong em { background: var(--danger); color: #fff; }
 .rv-exp { margin: .3rem 0 0; padding: .5rem .75rem; background: #f3f5f9; border-radius: var(--radius); white-space: pre-wrap; }
+
+/* ---------- admin results (Phase 8) ---------- */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .5rem .9rem; align-items: start; }
+.filters .field { margin-bottom: .5rem; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.tbl { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 900px; }
+.tbl th, .tbl td { padding: .55rem .7rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+.tbl th { background: #f3f5f9; font-weight: 600; position: sticky; top: 0; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tbl tbody tr:last-child td { border-bottom: 0; }
+.tbl tbody tr:hover { background: #f8fafd; }
+.btn.small-btn { min-height: 34px; padding: .2rem .7rem; font-size: .85rem; }
+@media print {
+  .side, .no-print { display: none !important; }
+  .shell { display: block; }
+  .main { max-width: none; padding: 0; }
+  body { background: #fff; }
+  .tablewrap { border: 0; overflow: visible; }
+  .tbl { min-width: 0; font-size: 10pt; }
+  .tbl th, .tbl td { white-space: normal; }
+  .rv, .panel { break-inside: avoid; }
+}

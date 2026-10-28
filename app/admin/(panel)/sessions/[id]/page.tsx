@@ -80,6 +80,7 @@ export default async function SessionPage({
             {isLive && s.entry_closed_at && <span className="badge warn" style={{ marginLeft: ".4rem" }}>ปิดรับผู้เข้าสอบแล้ว</span>}
           </p>
         </div>
+        {!isDraft && <Link className="btn primary" href={`/admin/results/${id}`}>ดูผลสอบ</Link>}
       </div>
 
       <Flash ok={ok} err={err} />
