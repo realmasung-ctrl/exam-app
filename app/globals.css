@@ -158,3 +158,24 @@ fieldset:disabled input:not([type="checkbox"]), fieldset:disabled select { backg
 .score { display: flex; align-items: baseline; gap: .6rem; margin: .5rem 0 1rem; flex-wrap: wrap; }
 .score b { font-size: 3rem; line-height: 1; }
 .score span { color: var(--muted); }
+
+/* ---------- result + answer review (Phase 7) ---------- */
+.result-wrap { max-width: 680px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+.badge.bad { background: var(--danger-bg); color: #8f1f1f; }
+.rv { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: var(--radius); padding: .9rem 1.1rem; margin-bottom: .9rem; }
+.rv.correct { border-left-color: var(--ok); }
+.rv.wrong { border-left-color: var(--danger); }
+.rv-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+.rv-q { white-space: pre-wrap; font-size: 1.05rem; margin-bottom: .6rem; }
+.rv-opts { list-style: none; margin: 0 0 .5rem; padding: 0; }
+.rv-opts li { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .45rem .6rem; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: .35rem; }
+.rv-opts li b { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 6px; background: #eef1f5; }
+.rv-opts li span { flex: 1 1 8rem; }
+.rv-opts li em { font-style: normal; font-size: .8rem; font-weight: 700; padding: .05rem .5rem; border-radius: 999px; background: #e6eaf1; }
+.rv-opts li.is-correct { background: var(--ok-bg); border-color: var(--ok); }
+.rv-opts li.is-correct b { background: var(--ok); color: #fff; }
+.rv-opts li.is-correct em { background: var(--ok); color: #fff; }
+.rv-opts li.is-wrong { background: var(--danger-bg); border-color: var(--danger); }
+.rv-opts li.is-wrong b { background: var(--danger); color: #fff; }
+.rv-opts li.is-wrong em { background: var(--danger); color: #fff; }
+.rv-exp { margin: .3rem 0 0; padding: .5rem .75rem; background: #f3f5f9; border-radius: var(--radius); white-space: pre-wrap; }

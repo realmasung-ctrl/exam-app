@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatClock, timerLevel, remainingFrom, nextSeq, mergeAnswers, formatDuration } from "../lib/exam-logic.ts";
+import {
+  formatClock, timerLevel, remainingFrom, nextSeq, mergeAnswers, formatDuration, canReveal, buildReview,
+} from "../lib/exam-logic.ts";
 
 test("formatClock rounds up and never goes negative", () => {
   assert.equal(formatClock(600_000), "10:00");
@@ -51,4 +53,41 @@ test("formatDuration", () => {
   assert.equal(formatDuration(45), "45 วินาที");
   assert.equal(formatDuration(330), "5 นาที 30 วินาที");
   assert.equal(formatDuration(600), "10 นาที 0 วินาที");
+});
+
+test("canReveal follows the admin's reveal mode", () => {
+  for (const st of ["open", "running", "ended", "disabled"]) {
+    assert.equal(canReveal("immediate", st), true, `immediate/${st}`);
+    assert.equal(canReveal("hidden", st), false, `hidden/${st}`);
+  }
+  assert.equal(canReveal("after_close", "open"), false);
+  assert.equal(canReveal("after_close", "running"), false);
+  assert.equal(canReveal("after_close", "ended"), true);
+  assert.equal(canReveal("after_close", "disabled"), true);
+  assert.equal(canReveal("something-else", "ended"), false); // unknown value fails closed
+});
+
+test("buildReview marks correct / wrong / unanswered and keeps both answers visible", () => {
+  const mk = (id: string, position: number, correct: string, explanation: string | null) => ({
+    id, position, body: `Q${position}`, explanation,
+    // deliberately unsorted to prove ordering is applied
+    choices: ["ค", "ก", "ง", "ข"].map((label) => ({ label, body: `opt-${label}`, is_correct: label === correct })),
+  });
+  const review = buildReview(
+    [mk("q3", 3, "ง", "  "), mk("q1", 1, "ก", "เพราะ..."), mk("q2", 2, "ข", null)],
+    { q1: "ก", q2: "ค" },
+  );
+  assert.deepEqual(review.map((r) => r.position), [1, 2, 3]);
+  assert.deepEqual(review.map((r) => r.status), ["correct", "wrong", "unanswered"]);
+  assert.deepEqual(review[0].choices.map((c) => c.label), ["ก", "ข", "ค", "ง"]);
+  assert.equal(review[0].explanation, "เพราะ...");
+  assert.equal(review[2].explanation, null); // blank explanation is treated as none
+  // wrong answer: both my choice and the right one are flagged
+  assert.equal(review[1].myLabel, "ค");
+  assert.equal(review[1].correctLabel, "ข");
+  assert.deepEqual(review[1].choices.filter((c) => c.isMine).map((c) => c.label), ["ค"]);
+  assert.deepEqual(review[1].choices.filter((c) => c.isCorrect).map((c) => c.label), ["ข"]);
+  // unanswered: nobody is marked as "mine"
+  assert.equal(review[2].myLabel, null);
+  assert.equal(review[2].choices.some((c) => c.isMine), false);
 });
