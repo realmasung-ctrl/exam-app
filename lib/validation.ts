@@ -96,3 +96,101 @@ export function parseQuestionForm(
     correct: parseLabel(get("correct")),
   });
 }
+
+// ---------------------------------------------------------------------
+// Exam sessions (Phase 4)
+// ---------------------------------------------------------------------
+
+const BANGKOK_OFFSET_MS = 7 * 3600 * 1000; // Thailand has no daylight saving time
+
+/** "2026-10-28T09:30" typed by an admin in Bangkok time -> UTC ISO string (null if invalid). */
+export function bangkokLocalToIso(s: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(s);
+  if (!m) return null;
+  const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) - BANGKOK_OFFSET_MS;
+  const iso = new Date(ms).toISOString();
+  return isoToBangkokLocal(iso) === s ? iso : null; // rejects 2026-02-31, hour 25, ...
+}
+
+/** UTC ISO string -> "YYYY-MM-DDTHH:mm" in Bangkok time (value for <input type="datetime-local">). */
+export function isoToBangkokLocal(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  return new Date(t + BANGKOK_OFFSET_MS).toISOString().slice(0, 16);
+}
+
+export function parseDuration(v: unknown): Result<number> {
+  const s = typeof v === "string" ? v.trim() : "";
+  const n = Number(s);
+  if (s === "" || !Number.isInteger(n) || n < 1 || n > 600) {
+    return fail("เวลาสอบต้องเป็นจำนวนนาทีเต็ม ตั้งแต่ 1 ถึง 600 นาที");
+  }
+  return ok(n);
+}
+
+export function parseOptionalPercent(v: unknown): Result<number | null> {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (s === "") return ok(null);
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return fail("เปอร์เซ็นต์คะแนนผ่านต้องอยู่ระหว่าง 0 ถึง 100");
+  return ok(Math.round(n * 100) / 100);
+}
+
+export function parseOptionalCount(v: unknown, name: string, max = 10000): Result<number | null> {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (s === "") return ok(null);
+  const n = Number(s);
+  if (!Number.isInteger(n) || n < 0 || n > max) return fail(`${name}ต้องเป็นจำนวนเต็ม 0 ถึง ${max}`);
+  return ok(n);
+}
+
+export function parseOptionalDateTime(v: unknown, name: string): Result<string | null> {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (s === "") return ok(null);
+  const iso = bangkokLocalToIso(s);
+  return iso ? ok(iso) : fail(`${name}ไม่ถูกต้อง`);
+}
+
+/** draft = true: every field is editable. draft = false (session already opened):
+ *  only title / reveal mode / entry-close time / expected count may change, because the rest
+ *  would make already-started attempts inconsistent. */
+export function parseSessionForm(get: (name: string) => unknown, draft: boolean): Result<Record<string, unknown>> {
+  const title = parseText(get("title"), 200, "ชื่อรอบสอบ", true);
+  if (!title.ok) return title;
+  const reveal = parseRevealMode(get("reveal_mode"));
+  if (!reveal.ok) return reveal;
+  const closes = parseOptionalDateTime(get("closes_at"), "เวลาปิดรับผู้เข้าสอบ");
+  if (!closes.ok) return closes;
+  const expected = parseOptionalCount(get("expected_participants"), "จำนวนผู้เข้าสอบที่คาดไว้");
+  if (!expected.ok) return expected;
+
+  const patch: Record<string, unknown> = {
+    title: title.value,
+    reveal_mode: reveal.value,
+    closes_at: closes.value,
+    expected_participants: expected.value,
+  };
+
+  if (draft) {
+    const setId = get("set_id");
+    if (!isUuid(setId)) return fail("กรุณาเลือกชุดข้อสอบ");
+    const duration = parseDuration(get("duration_minutes"));
+    if (!duration.ok) return duration;
+    const opens = parseOptionalDateTime(get("opens_at"), "เวลาเริ่มเปิดรับผู้เข้าสอบ");
+    if (!opens.ok) return opens;
+    const pass = parseOptionalPercent(get("pass_percent"));
+    if (!pass.ok) return pass;
+    if (opens.value && closes.value && closes.value <= opens.value) {
+      return fail("เวลาปิดรับผู้เข้าสอบต้องอยู่หลังเวลาเริ่มเปิดรับ");
+    }
+    Object.assign(patch, {
+      set_id: setId,
+      duration_minutes: duration.value,
+      opens_at: opens.value,
+      pass_percent: pass.value,
+      require_student_code: get("require_student_code") === "on",
+    });
+  }
+  return ok(patch);
+}

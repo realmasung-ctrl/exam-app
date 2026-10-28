@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 const items = [
   { href: "/admin", label: "หน้าหลัก", exact: true },
   { href: "/admin/sets", label: "ชุดข้อสอบ", exact: false },
+  { href: "/admin/sessions", label: "รอบสอบ / ลิงก์ / QR", exact: false },
   { href: "/admin/settings", label: "ตั้งค่าระบบ", exact: false },
 ];
-const soon = ["รอบสอบ", "ลิงก์และ QR Code", "ผลสอบ"];
+const soon = ["ผลสอบ"];
 
 export default function AdminNav() {
-  const path = usePathname();
+  const path = usePathname() ?? "";
   return (
     <nav className="nav" aria-label="เมนูหลัก">
       {items.map((it) => {

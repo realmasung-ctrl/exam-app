@@ -14,7 +14,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     db.auth.admin.listUsers({ page: 1, perPage: 200 }),
   ]);
   const emails = new Map<string, string>(
-    (usersRes.data?.users ?? []).map((u: { id: string; email?: string }) => [u.id, u.email ?? ""]),
+    (usersRes.data?.users ?? []).map((u: { id: string; email?: string }): [string, string] => [u.id, u.email ?? ""]),
   );
 
   return (

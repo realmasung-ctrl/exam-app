@@ -58,6 +58,7 @@ export default async function SetPage({
         </div>
         <div className="actions">
           <Link className="btn" href={`/admin/sets/${id}/preview`}>ดูตัวอย่างข้อสอบ</Link>
+          <Link className="btn" href={`/admin/sessions?set=${id}`}>สร้างรอบสอบจากชุดนี้</Link>
           <form>
             <ConfirmButton
               action={deleteSet.bind(null, id)}
