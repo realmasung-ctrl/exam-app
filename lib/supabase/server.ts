@@ -1,6 +1,8 @@
 import "server-only";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+
+type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 // Client bound to the logged-in admin's cookie session (uses the public anon key).
 // It is only used for authentication; all data access goes through serviceClient().
@@ -11,8 +13,10 @@ export async function sessionClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => store.getAll(),
-        setAll(list) {
+        getAll() {
+          return store.getAll();
+        },
+        setAll(list: CookieToSet[]) {
           try {
             list.forEach(({ name, value, options }) => store.set(name, value, options));
           } catch {
