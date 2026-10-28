@@ -119,6 +119,9 @@ export default async function SessionPage({
           <div><b>{notStarted ?? "-"}</b><span>ยังไม่เริ่ม</span></div>
         </section>
       )}
+      {!isDraft && (
+        <p><Link className="btn" href={`/admin/results/${id}`}>ดูรายชื่อผู้เข้าสอบและผลสอบรายคน →</Link></p>
+      )}
 
       {isLive && (
         <section className="panel">

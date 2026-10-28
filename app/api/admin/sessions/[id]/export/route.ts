@@ -21,6 +21,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const data = await loadSessionResults(id);
   if (!data) return deny(404, "NOT_FOUND");
+  if (data.error) return deny(500, "LOAD_FAILED"); // never hand out an incomplete file
 
   const stamp = formatBangkok(new Date().toISOString()).slice(0, 10);
   const base = `ผลสอบ-${safeFilename(data.session.title)}-${stamp}`;

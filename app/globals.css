@@ -201,3 +201,7 @@ fieldset:disabled input:not([type="checkbox"]), fieldset:disabled select { backg
   .tbl th, .tbl td { white-space: normal; }
   .rv, .panel { break-inside: avoid; }
 }
+
+.skeleton { background: linear-gradient(90deg, #e3e8f0 25%, #eef1f6 37%, #e3e8f0 63%); background-size: 400% 100%; border-radius: var(--radius); animation: sk 1.4s ease infinite; }
+@keyframes sk { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

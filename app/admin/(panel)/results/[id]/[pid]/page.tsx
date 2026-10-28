@@ -6,6 +6,7 @@ import { allowRetake } from "@/lib/actions/results";
 import { STATUS_LABEL, formatBangkok, formatMinSec } from "@/lib/results-logic";
 import ConfirmButton from "@/components/ConfirmButton";
 import AutoRefresh from "@/components/AutoRefresh";
+import Flash from "@/components/Flash";
 
 const ITEM_TEXT = { correct: "ตอบถูก", wrong: "ตอบผิด", unanswered: "ไม่ได้ตอบ" } as const;
 
@@ -44,6 +45,8 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
           </form>
         )}
       </div>
+
+      <Flash err={d.error ?? undefined} />
 
       {items === null ? (
         <section className="panel">

@@ -22,7 +22,7 @@ export default async function ResultsPage({
 
   const data = await loadSessionResults(id);
   if (!data) notFound();
-  const { session: s, rows, voidedCount } = data;
+  const { session: s, rows, voidedCount, error: loadError } = data;
 
   const q = (sp.q ?? "").slice(0, 100);
   const status = parseStatusFilter(sp.status);
@@ -55,7 +55,7 @@ export default async function ResultsPage({
         </div>
       </div>
 
-      <Flash ok={sp.ok} err={sp.err} />
+      <Flash ok={sp.ok} err={sp.err ?? loadError ?? undefined} />
 
       <section className="stats" aria-label="สรุปผู้เข้าสอบ">
         <div><b>{s.expected_participants ?? "-"}</b><span>ผู้เข้าสอบที่คาดไว้</span></div>
@@ -117,6 +117,7 @@ export default async function ResultsPage({
                 <th className="num">ถูก</th><th className="num">ผิด</th><th className="num">ไม่ตอบ</th>
                 {hasPass && <th>ผลผ่าน</th>}
                 <th>สถานะการส่ง</th>
+                <th className="no-print">รายละเอียด</th>
                 {canRetake && <th className="no-print"></th>}
               </tr>
             </thead>
@@ -143,6 +144,9 @@ export default async function ResultsPage({
                       <td>{r.passed === null ? "—" : <span className={`badge ${r.passed ? "ok" : "bad"}`}>{r.passed ? "ผ่าน" : "ไม่ผ่าน"}</span>}</td>
                     )}
                     <td><span className={`badge ${done ? "" : "warn"}`}>{STATUS_LABEL[r.status]}</span></td>
+                    <td className="no-print">
+                      <Link className="btn small-btn" href={`/admin/results/${s.id}/${r.participantId}`}>ดูรายละเอียด</Link>
+                    </td>
                     {canRetake && (
                       <td className="no-print">
                         <form>
