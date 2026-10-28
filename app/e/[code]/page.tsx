@@ -1,40 +1,40 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { serviceClient } from "@/lib/supabase/admin";
+import { CODE_RE, SESSION_COLS, loadAttempt, type PublicSession } from "@/lib/exam";
+import { startExam } from "@/lib/actions/exam";
+import StartButton from "@/components/StartButton";
 
 export const metadata: Metadata = { title: "เข้าร่วมการสอบ", robots: { index: false, follow: false } };
+export const dynamic = "force-dynamic";
 
-type PublicSession = {
-  title: string; snapshot_set_title: string | null; snapshot_instructions: string | null;
-  duration_minutes: number; question_count: number | null; max_points: number | null;
-  status: string; entry_closed_at: string | null; opens_at: string | null; closes_at: string | null;
-  require_student_code: boolean;
+const START_ERR: Record<string, string> = {
+  NAME_REQUIRED: "กรุณากรอกชื่อและนามสกุลให้ครบ",
+  CODE_INVALID: "รหัสประจำตัวยาวเกินไป",
+  STUDENT_CODE_REQUIRED: "รอบสอบนี้ต้องกรอกรหัสประจำตัว",
+  SESSION_CLOSED: "รอบสอบนี้ปิดรับผู้เข้าสอบแล้ว",
+  ENTRY_CLOSED: "รอบสอบนี้ปิดรับผู้เข้าสอบแล้ว",
+  SESSION_NOT_YET_OPEN: "ยังไม่ถึงเวลาเปิดรับผู้เข้าสอบ",
+  SESSION_NOT_FOUND: "ไม่พบรอบสอบ กรุณาตรวจสอบลิงก์",
+  ALREADY_STARTED:
+    "ชื่อนี้เข้าสอบรอบนี้ไปแล้ว ถ้าคุณเปลี่ยนเครื่องหรือเบราว์เซอร์ กรุณาแจ้งผู้ดูแลการสอบ",
 };
 
-// Phase 4 placeholder of the student's first screen: it proves that the link/QR points
-// to the right session. Only public, non-sensitive fields are selected (never answers).
-export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
+export default async function JoinPage({
+  params, searchParams,
+}: { params: Promise<{ code: string }>; searchParams: Promise<{ err?: string }> }) {
   const { code } = await params;
-  let s: PublicSession | null = null;
+  const { err } = await searchParams;
 
-  if (/^[0-9a-f]{16}$/.test(code)) {
-    const { data } = await serviceClient()
-      .from("exam_sessions")
-      .select("title, snapshot_set_title, snapshot_instructions, duration_minutes, question_count, max_points, status, entry_closed_at, opens_at, closes_at, require_student_code")
-      .eq("public_code", code)
-      .maybeSingle();
-    s = (data as PublicSession | null) ?? null;
-  }
+  if (!CODE_RE.test(code)) return <NotFound />;
 
-  if (!s) {
-    return (
-      <main className="login">
-        <div className="panel">
-          <h1>ไม่พบรอบสอบ</h1>
-          <p className="muted">ลิงก์ไม่ถูกต้อง กรุณาตรวจสอบกับผู้ดูแลการสอบ</p>
-        </div>
-      </main>
-    );
-  }
+  // Same browser coming back (refresh, closed tab, opened the link again): never start a new attempt.
+  const mine = await loadAttempt(code);
+  if (mine) redirect(mine.participant.status === "in_progress" ? `/e/${code}/take` : `/e/${code}/result`);
+
+  const { data } = await serviceClient().from("exam_sessions").select(SESSION_COLS).eq("public_code", code).maybeSingle();
+  const s = (data as PublicSession | null) ?? null;
+  if (!s) return <NotFound />;
 
   const now = Date.now();
   const notYet = s.opens_at !== null && now < new Date(s.opens_at).getTime();
@@ -42,6 +42,8 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
     !["open", "running"].includes(s.status) ||
     s.entry_closed_at !== null ||
     (s.closes_at !== null && now >= new Date(s.closes_at).getTime());
+
+  const errMsg = err ? (START_ERR[err] ?? "เริ่มการสอบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง") : null;
 
   return (
     <main className="login">
@@ -51,16 +53,46 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
         {s.snapshot_instructions && <p style={{ whiteSpace: "pre-wrap" }}>{s.snapshot_instructions}</p>}
         <p className="muted">
           {s.question_count ?? 0} ข้อ · เวลาสอบ {s.duration_minutes} นาที · คะแนนเต็ม {s.max_points ?? 0}
+          {s.pass_percent !== null ? ` · เกณฑ์ผ่าน ${s.pass_percent}%` : ""}
         </p>
+
+        {errMsg && <div className="flash err" role="alert">{errMsg}</div>}
+
         {closed ? (
           <div className="flash err" role="alert">รอบสอบนี้ปิดรับผู้เข้าสอบแล้ว</div>
         ) : notYet ? (
           <div className="flash err" role="alert">ยังไม่ถึงเวลาเปิดรับผู้เข้าสอบ</div>
         ) : (
-          <div className="flash ok" role="status">
-            ลิงก์ถูกต้อง — หน้ากรอกชื่อและเริ่มทำข้อสอบจะเปิดใช้งานในขั้นตอนถัดไป (Phase 5)
-          </div>
+          <form action={startExam.bind(null, code)}>
+            <label className="field">
+              <span>ชื่อ</span>
+              <input type="text" name="first_name" maxLength={100} required autoComplete="given-name" />
+            </label>
+            <label className="field">
+              <span>นามสกุล</span>
+              <input type="text" name="last_name" maxLength={100} required autoComplete="family-name" />
+            </label>
+            <label className="field">
+              <span>รหัสประจำตัว{s.require_student_code ? "" : " (ไม่บังคับ)"}</span>
+              <input type="text" name="student_code" maxLength={50} required={s.require_student_code} autoComplete="off" />
+            </label>
+            <p className="small muted">
+              เมื่อกด “เริ่มทำข้อสอบ” เวลาจะเริ่มนับทันทีและหยุดไม่ได้ ถ้าหน้าเว็บค้างหรือปิดไป ให้เปิดลิงก์เดิมในเบราว์เซอร์เดิมเพื่อทำต่อ
+            </p>
+            <StartButton>เริ่มทำข้อสอบ</StartButton>
+          </form>
         )}
+      </div>
+    </main>
+  );
+}
+
+function NotFound() {
+  return (
+    <main className="login">
+      <div className="panel">
+        <h1>ไม่พบรอบสอบ</h1>
+        <p className="muted">ลิงก์ไม่ถูกต้อง กรุณาตรวจสอบกับผู้ดูแลการสอบ</p>
       </div>
     </main>
   );
