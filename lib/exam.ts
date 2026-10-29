@@ -78,4 +78,15 @@ export function sameOrigin(req: Request): boolean {
   }
 }
 
+/** One place that decides how the exam token cookie is protected. */
+export function examCookieOptions() {
+  return {
+    httpOnly: true, // JavaScript on the page can never read the token
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  };
+}
+
 export const NO_STORE = { "Cache-Control": "no-store" } as const;
