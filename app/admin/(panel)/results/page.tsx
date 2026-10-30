@@ -2,6 +2,8 @@ import Link from "next/link";
 import { serviceClient } from "@/lib/supabase/admin";
 import { fmtDate, SESSION_STATUS_LABEL, statusBadgeClass } from "@/lib/format";
 import Flash from "@/components/Flash";
+import DangerConfirm from "@/components/DangerConfirm";
+import { deleteFinishedSession } from "@/lib/actions/results";
 
 type S = {
   id: string; title: string; status: string; created_at: string; opened_at: string | null;
@@ -47,7 +49,26 @@ export default async function ResultsIndex({ searchParams }: { searchParams: Pro
                       {s.snapshot_set_title ?? ""} · เข้าสอบ {st.entered} คน · กำลังสอบ {st.inProgress} คน · เปิดเมื่อ {fmtDate(s.opened_at ?? s.created_at)}
                     </div>
                   </div>
-                  <span className={`badge ${statusBadgeClass(s.status)}`}>{SESSION_STATUS_LABEL[s.status] ?? s.status}</span>
+                  <div className="row-end">
+                    <span className={`badge ${statusBadgeClass(s.status)}`}>{SESSION_STATUS_LABEL[s.status] ?? s.status}</span>
+                    {(s.status === "ended" || s.status === "disabled") && (
+                      <DangerConfirm
+                        action={deleteFinishedSession.bind(null, s.id)}
+                        triggerLabel="ลบ"
+                        triggerClassName="btn small-btn danger"
+                        title={`ลบรอบสอบ “${s.title}”?`}
+                        confirmLabel="ลบรอบสอบและผลสอบทั้งหมด"
+                        ackLabel="ฉันเข้าใจว่าลบแล้วกู้คืนไม่ได้ และได้ส่งออกผลสอบไว้แล้วหากต้องการเก็บ"
+                      >
+                        <p>จะลบ <strong>ถาวร</strong>: รอบสอบนี้ ผู้เข้าสอบ {st.entered} คน คำตอบทุกข้อ ผลคะแนน และสำเนาข้อสอบของรอบนี้</p>
+                        <p className="small muted">ชุดข้อสอบต้นฉบับไม่ถูกลบ ก่อนลบแนะนำให้ส่งออกผลสอบเก็บไว้:</p>
+                        <p className="actions">
+                          <a className="btn small-btn" href={`/api/admin/sessions/${s.id}/export?format=xlsx`}>ส่งออก Excel</a>
+                          <a className="btn small-btn" href={`/api/admin/sessions/${s.id}/export?format=csv`}>ส่งออก CSV</a>
+                        </p>
+                      </DangerConfirm>
+                    )}
+                  </div>
                 </li>
               );
             })}

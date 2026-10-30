@@ -12,6 +12,7 @@ import type { Problem } from "@/lib/types";
 import ConfirmButton from "@/components/ConfirmButton";
 import CopyButton from "@/components/CopyButton";
 import Flash from "@/components/Flash";
+import BackLink from "@/components/BackLink";
 
 type SessionFull = {
   id: string; set_id: string | null; title: string; duration_minutes: number;
@@ -72,7 +73,7 @@ export default async function SessionPage({
     <>
       <div className="page-head">
         <div>
-          <p className="small" style={{ margin: 0 }}><Link href="/admin/sessions">← รอบสอบทั้งหมด</Link></p>
+          <BackLink href="/admin/sessions">รอบสอบทั้งหมด</BackLink>
           <h1>{s.title}</h1>
           <p className="muted">
             ชุดข้อสอบ: {setTitle} ·{" "}

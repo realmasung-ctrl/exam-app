@@ -38,3 +38,17 @@ export async function allowRetake(sessionId: string, participantId: string, _for
   back(sessionId, "ok",
     `อนุญาตให้ ${p.first_name} ${p.last_name} สอบใหม่แล้ว — ผลเดิมถูกเก็บไว้แต่ไม่แสดงในรายงาน ให้ผู้เรียนเปิดลิงก์เดิมแล้วกรอกชื่อเพื่อเริ่มใหม่ (ได้เวลาเต็มอีกครั้ง)`);
 }
+
+// Permanently deletes a FINISHED session (ended / disabled) together with its participants, answers, results
+// and the question snapshot. Running or open sessions can never be deleted here: end them first.
+export async function deleteFinishedSession(sessionId: string, _formData: FormData) {
+  await requireAdmin();
+  if (!isUuid(sessionId)) redirect("/admin/results");
+
+  const { data, error } = await serviceClient().from("exam_sessions")
+    .delete().eq("id", sessionId).in("status", ["ended", "disabled"]).select("id, title");
+  if (error || !data || data.length === 0) {
+    redirect(`/admin/results?err=${encodeURIComponent("ลบไม่สำเร็จ: ลบได้เฉพาะรอบสอบที่สิ้นสุดแล้วหรือปิดใช้งานแล้ว")}`);
+  }
+  redirect(`/admin/results?ok=${encodeURIComponent(`ลบรอบสอบ “${data[0].title}” พร้อมผลสอบทั้งหมดแล้ว`)}`);
+}

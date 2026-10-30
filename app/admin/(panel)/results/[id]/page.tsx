@@ -10,6 +10,9 @@ import { SESSION_STATUS_LABEL, statusBadgeClass } from "@/lib/format";
 import AutoRefresh from "@/components/AutoRefresh";
 import ConfirmButton from "@/components/ConfirmButton";
 import Flash from "@/components/Flash";
+import DangerConfirm from "@/components/DangerConfirm";
+import { deleteFinishedSession } from "@/lib/actions/results";
+import BackLink from "@/components/BackLink";
 
 type SP = { ok?: string; err?: string; q?: string; status?: string; sort?: string; dir?: string };
 
@@ -39,7 +42,7 @@ export default async function ResultsPage({
       {live && <AutoRefresh intervalMs={5000} />}
       <div className="page-head">
         <div>
-          <p className="small" style={{ margin: 0 }}><Link href="/admin/results">← ผลสอบทั้งหมด</Link></p>
+          <BackLink href="/admin/results">ผลสอบทั้งหมด</BackLink>
           <h1>ผลสอบ: {s.title}</h1>
           <p className="muted">
             <span className={`badge ${statusBadgeClass(s.status)}`}>{SESSION_STATUS_LABEL[s.status] ?? s.status}</span>{" "}
@@ -52,6 +55,22 @@ export default async function ResultsPage({
           <Link className="btn" href={`/admin/sessions/${s.id}`}>จัดการรอบสอบ</Link>
           <a className="btn" href={`/api/admin/sessions/${s.id}/export?format=xlsx`}>ส่งออก Excel</a>
           <a className="btn" href={`/api/admin/sessions/${s.id}/export?format=csv`}>ส่งออก CSV</a>
+          {(s.status === "ended" || s.status === "disabled") && (
+            <DangerConfirm
+              action={deleteFinishedSession.bind(null, s.id)}
+              triggerLabel="ลบรอบสอบนี้"
+              title={`ลบรอบสอบ “${s.title}”?`}
+              confirmLabel="ลบรอบสอบและผลสอบทั้งหมด"
+              ackLabel="ฉันเข้าใจว่าลบแล้วกู้คืนไม่ได้ และได้ส่งออกผลสอบไว้แล้วหากต้องการเก็บ"
+            >
+              <p>จะลบ <strong>ถาวร</strong>: รอบสอบนี้ ผู้เข้าสอบ {sum.entered} คน คำตอบทุกข้อ ผลคะแนน และสำเนาข้อสอบของรอบนี้</p>
+              <p className="small muted">ชุดข้อสอบต้นฉบับไม่ถูกลบ ก่อนลบแนะนำให้ส่งออกผลสอบเก็บไว้:</p>
+              <p className="actions">
+                <a className="btn small-btn" href={`/api/admin/sessions/${s.id}/export?format=xlsx`}>ส่งออก Excel</a>
+                <a className="btn small-btn" href={`/api/admin/sessions/${s.id}/export?format=csv`}>ส่งออก CSV</a>
+              </p>
+            </DangerConfirm>
+          )}
         </div>
       </div>
 

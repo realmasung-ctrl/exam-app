@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/validation";
 import { loadParticipantDetail } from "@/lib/results";
@@ -7,6 +6,7 @@ import { STATUS_LABEL, formatBangkok, formatMinSec } from "@/lib/results-logic";
 import ConfirmButton from "@/components/ConfirmButton";
 import AutoRefresh from "@/components/AutoRefresh";
 import Flash from "@/components/Flash";
+import BackLink from "@/components/BackLink";
 
 const ITEM_TEXT = { correct: "ตอบถูก", wrong: "ตอบผิด", unanswered: "ไม่ได้ตอบ" } as const;
 
@@ -24,7 +24,7 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
       {r.status === "in_progress" && <AutoRefresh intervalMs={5000} />}
       <div className="page-head">
         <div>
-          <p className="small" style={{ margin: 0 }}><Link href={`/admin/results/${id}`}>← ผลสอบ {s.title}</Link></p>
+          <BackLink href={`/admin/results/${id}`}>ผลสอบ {s.title}</BackLink>
           <h1>{r.firstName} {r.lastName}</h1>
           <p className="muted">
             {r.studentCode ? `รหัส ${r.studentCode} · ` : ""}

@@ -190,7 +190,7 @@ test("database: every table has RLS enabled; every function is SECURITY DEFINER 
   assert.match(sec, /revoke all on all tables\s+in schema public from anon, authenticated/);
   assert.match(sec, /revoke all on all functions in schema public from public, anon, authenticated/);
 
-  for (const f of ["0002_functions.sql", "0004_session_cap.sql"]) {
+  for (const f of ["0002_functions.sql", "0004_session_cap.sql", "0005_save_set_content.sql"]) {
     const text = read(join(ROOT, "supabase/migrations", f));
     const defs = text.split(/create or replace function /).slice(1);
     assert.ok(defs.length > 0);
@@ -204,7 +204,7 @@ test("database: every table has RLS enabled; every function is SECURITY DEFINER 
 });
 
 test("every .rpc() call targets a function that exists in the migrations", () => {
-  const sql = ["0002_functions.sql", "0004_session_cap.sql"].map((f) => read(join(ROOT, "supabase/migrations", f))).join("\n");
+  const sql = ["0002_functions.sql", "0004_session_cap.sql", "0005_save_set_content.sql"].map((f) => read(join(ROOT, "supabase/migrations", f))).join("\n");
   const defined = new Set([...sql.matchAll(/create or replace function public\.(\w+)/g)].map((m) => m[1]));
   for (const f of srcFiles) {
     for (const m of read(f).matchAll(/\.rpc\(\s*"(\w+)"/g)) {

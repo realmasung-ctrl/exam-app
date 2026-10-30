@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { serviceClient } from "@/lib/supabase/admin";
 import { isUuid, LABELS } from "@/lib/validation";
 import PreviewExam from "@/components/PreviewExam";
+import BackLink from "@/components/BackLink";
 
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,7 +25,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <p className="small"><Link href={`/admin/sets/${id}`}>← กลับไปแก้ไขชุดข้อสอบ</Link></p>
+      <BackLink href={`/admin/sets/${id}`}>กลับไปแก้ไขชุดข้อสอบ</BackLink>
       <div className="pv-banner" role="note">โหมดตัวอย่าง — ไม่บันทึกคำตอบ ไม่มีผลกับข้อมูลจริง และไม่แสดงเฉลย</div>
       <PreviewExam title={set.title} instructions={set.instructions} questions={questions} />
     </>
