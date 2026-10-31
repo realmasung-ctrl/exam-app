@@ -135,7 +135,7 @@ test("service-role key and server-only modules never reach client components", (
   }
   const users = srcFiles.filter((f) => /SUPABASE_SERVICE_ROLE_KEY/.test(read(f))).map(norm);
   assert.deepEqual(users, ["lib/supabase/admin.ts"]);
-  for (const name of ["lib/supabase/admin.ts", "lib/supabase/server.ts", "lib/auth.ts", "lib/exam.ts", "lib/exam-start.ts", "lib/results.ts", "lib/url.ts"]) {
+  for (const name of ["lib/supabase/admin.ts", "lib/supabase/server.ts", "lib/auth.ts", "lib/exam.ts", "lib/exam-start.ts", "lib/results.ts", "lib/url.ts", "lib/syscheck.ts"]) {
     assert.match(read(join(ROOT, name)), /^import "server-only";/m, `${name} must import "server-only"`);
   }
   for (const f of walk(join(ROOT, "app")).concat(walk(join(ROOT, "components")))) {

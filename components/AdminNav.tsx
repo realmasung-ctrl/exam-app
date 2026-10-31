@@ -8,6 +8,7 @@ const items = [
   { href: "/admin/sessions", label: "รอบสอบ / ลิงก์ / QR", exact: false },
   { href: "/admin/results", label: "ผลสอบ", exact: false },
   { href: "/admin/settings", label: "ตั้งค่าระบบ", exact: false },
+  { href: "/admin/system", label: "ตรวจสอบระบบ / สำรองข้อมูล", exact: false },
 ];
 const soon: string[] = [];
 
