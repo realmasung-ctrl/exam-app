@@ -1,4 +1,5 @@
 import { login } from "@/lib/actions/auth";
+import LoginButton from "@/components/LoginButton";
 
 const MESSAGES: Record<string, string> = {
   missing: "กรุณากรอกอีเมลและรหัสผ่าน",
@@ -22,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <span>รหัสผ่าน</span>
           <input type="password" name="password" autoComplete="current-password" required />
         </label>
-        <button className="btn primary" type="submit" style={{ width: "100%" }}>เข้าสู่ระบบ</button>
+        <LoginButton key={error ?? "none"} />
       </form>
     </main>
   );

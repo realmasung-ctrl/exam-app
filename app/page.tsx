@@ -1,4 +1,4 @@
-import Link from "next/link";
+import PendingLink from "@/components/PendingLink";
 
 // Public home page. Students normally arrive through the link / QR code of an exam session (/e/<code>),
 // so this page mainly serves administrators.
@@ -13,9 +13,9 @@ export default function Home() {
         <div style={{ borderTop: "1px solid var(--line)", margin: "1.25rem 0 1rem" }} />
         <p className="small muted" style={{ marginBottom: ".6rem" }}>สำหรับผู้ดูแลระบบ</p>
         {/* /admin sends signed-out visitors to the login page and signed-in admins straight to the dashboard */}
-        <Link className="btn primary" href="/admin" style={{ width: "100%", minHeight: 48 }}>
+        <PendingLink className="btn primary" href="/admin" style={{ width: "100%", minHeight: 48 }} busyLabel="กำลังเปิดหน้าเข้าสู่ระบบ…">
           เข้าสู่ระบบผู้ดูแล
-        </Link>
+        </PendingLink>
       </div>
     </main>
   );
